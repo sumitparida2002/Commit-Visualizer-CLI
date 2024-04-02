@@ -1,5 +1,7 @@
 import { getDotFilePath, parseFileLinesToSlice } from "./scan.js";
 
+import { parse, differenceInDays, parseISO } from "date-fns";
+
 import { gitlogPromise } from "gitlog";
 
 const daysInLastSixMonths = 183;
@@ -31,18 +33,22 @@ function processRepositories(email) {
 }
 
 async function fillCommits(email, path, commits) {
+  const cleanedPath = path.replace(/\/\.git$/, "");
+
   const options = {
-    repo: path,
-    number: 0, // Retrieve all commits
-    author: email,
-    fields: ["authorDate"],
+    repo: cleanedPath,
+    number: 10, // Retrieve all commits
+    fields: ["authorDate", "committerDateRel"],
+    all: true,
   };
   try {
     const commitLogs = await gitlogPromise(options);
+
     const offset = calcOffset();
 
     commitLogs.forEach((commit) => {
-      const daysAgo = countDaysSinceDate(new Date(commit.authorDate)) + offset;
+      const daysAgo = daysAgoFromCommitterDate(commit.authorDate);
+      console.log(daysAgo);
       if (daysAgo !== outOfRange) {
         commits[daysAgo]++;
       }
@@ -52,6 +58,17 @@ async function fillCommits(email, path, commits) {
   }
 
   return commits;
+}
+
+function daysAgoFromCommitterDate(committerDateStr) {
+  const formatString = "yyyy-MM-dd HH:mm:ss XX";
+
+  const committerDate = parse(committerDateStr, formatString, new Date());
+
+  const currentDate = new Date();
+  const daysAgo = differenceInDays(currentDate, committerDate);
+
+  return daysAgo;
 }
 
 function calcOffset() {
@@ -79,6 +96,7 @@ function calcOffset() {
 
 function printCommitsStats(commits) {
   const keys = Array.from(commits.keys()).sort((a, b) => a - b);
+  console.log(keys);
   const cols = buildCols(keys, commits);
   printCells(cols);
 }

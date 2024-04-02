@@ -13,6 +13,7 @@
   "dependencies": {
     "arg": "^5.0.2",
     "chalk": "^5.3.0",
+    "date-fns": "^3.6.0",
     "gitlog": "^4.0.8",
     "glob": "^10.3.12"
   },

@@ -16,7 +16,7 @@ try {
   if (folder) {
     scan(folder);
   } else {
-    stat("sumitparida2002@gmail.com");
+    stat("");
   }
 } catch (e) {
   console.log(chalk.yellow(e.message));
