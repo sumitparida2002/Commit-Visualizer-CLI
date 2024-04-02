@@ -9,12 +9,12 @@ const outOfRange = 99999;
 
 const weeksInLastSixMonths = 26;
 
-export function stat(email) {
-  let commits = processRepositories(email);
+export async function stat(email) {
+  let commits = await processRepositories(email);
   printCommitsStats(commits);
 }
 
-function processRepositories(email) {
+async function processRepositories(email) {
   const filePath = getDotFilePath();
   let repos = parseFileLinesToSlice(filePath);
 
@@ -26,7 +26,7 @@ function processRepositories(email) {
   }
 
   for (const path of repos) {
-    fillCommits(email, path, commits);
+    await fillCommits(email, path, commits);
   }
 
   return commits;
@@ -44,14 +44,12 @@ async function fillCommits(email, path, commits) {
   try {
     const commitLogs = await gitlogPromise(options);
 
-    const offset = calcOffset();
+    // const offset = calcOffset();
 
     commitLogs.forEach((commit) => {
       const daysAgo = daysAgoFromCommitterDate(commit.authorDate);
-      console.log(daysAgo);
-      if (daysAgo !== outOfRange) {
-        commits[daysAgo]++;
-      }
+
+      commits.set(parseInt(daysAgo), (commits.get(parseInt(daysAgo)) ?? 0) + 1);
     });
   } catch (error) {
     console.error(error);
@@ -96,8 +94,8 @@ function calcOffset() {
 
 function printCommitsStats(commits) {
   const keys = Array.from(commits.keys()).sort((a, b) => a - b);
-  console.log(keys);
   const cols = buildCols(keys, commits);
+
   printCells(cols);
 }
 
@@ -145,6 +143,7 @@ function printCells(cols) {
           }
         }
       }
+
       printCell(0, false);
     }
     console.log(""); // Newline for each row
@@ -214,15 +213,14 @@ function printCell(val, today) {
 
   if (val === 0) {
     process.stdout.write(escape + "  - " + "\x1b[0m");
-    return;
-  }
+  } else {
+    let str = `  ${val} `;
+    if (val >= 10) {
+      str = ` ${val} `;
+    } else if (val >= 100) {
+      str = `${val} `;
+    }
 
-  let str = "  %d ";
-  if (val >= 10) {
-    str = " %d ";
-  } else if (val >= 100) {
-    str = "%d ";
+    process.stdout.write(escape + str + "\x1b[0m");
   }
-
-  process.stdout.write(escape + str + "\x1b[0m", val);
 }
